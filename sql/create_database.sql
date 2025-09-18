@@ -1,11 +1,7 @@
 -- Database bootstrap script for dbaac
--- Creates the database and required extensions/schemas.
+-- Creates the required extensions/schemas inside the currently connected database.
 
 \set ON_ERROR_STOP on
-
-CREATE DATABASE dbaac;
-
-\connect dbaac
 
 -- Required for gen_random_uuid()
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
