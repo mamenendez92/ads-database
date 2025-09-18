@@ -1,45 +1,52 @@
 # ads-database
 
-Repositorio de definición de la base de datos **dbaac**.
+Repositorio de definición de la base de datos **dbaac** con flujo de trabajo basado en migraciones de Supabase.
 
 ## Requisitos
 
 - PostgreSQL 13 o superior.
-- Acceso a la utilidad `psql`.
 - Extensión `pgcrypto` habilitada (se crea automáticamente en el script).
+- [Supabase CLI](https://supabase.com/docs/guides/cli) instalada y autenticada.
 
 ## Estructura
 
 ```
-sql/
-├── create_database.sql        # Script maestro que crea la base y ejecuta el resto.
-└── schema/
-    ├── auth/                  # Objetos del esquema auth (usuarios, sesiones, enum AAL...).
-    ├── public/                # Tablas principales del dominio.
-    ├── storage/               # Objetos de gestión de archivos.
-    └── vault/                 # Tablas y funciones necesarias para secretos.
+supabase/
+├── config.toml                # Configuración del proyecto (editada tras `supabase link`).
+├── migrations/                # Migraciones SQL (orden cronológico por timestamp).
+│   └── 20240101000000_initial_schema.sql
+└── seed.sql                   # Datos de ejemplo opcionales ejecutados en `supabase db reset`.
 ```
 
-Cada archivo `*.sql` define un objeto (tabla, tipo, función o índice). El script principal
-utiliza `\include` para cargar los archivos en orden.
+La migración `20240101000000_initial_schema.sql` contiene la definición completa de esquemas, tipos,
+tablas, índices y funciones necesarias para el proyecto.
 
-## Creación de la base de datos
+## Puesta en marcha
 
 1. Clona este repositorio y accede al directorio:
    ```bash
    git clone <url-del-repositorio>
    cd ads-database
    ```
-2. Ejecuta el script principal con un rol que tenga privilegios de superusuario (para crear la base y extensiones):
+2. Inicializa la carpeta `supabase/` y vincula el proyecto (si aún no lo hiciste en este equipo):
    ```bash
-   psql -f sql/create_database.sql
+   supabase init
+   supabase link --project-ref <tu-project-ref>
    ```
-   El script creará la base `dbaac`, instalará las extensiones necesarias, y generará los esquemas y tablas.
+   Estos comandos actualizan `supabase/config.toml` con las credenciales reales del proyecto.
+3. Aplica los cambios de esquema en tu base de datos remota:
+   ```bash
+   supabase db push
+   ```
+4. (Opcional) Restablece el esquema local y aplica los datos de prueba definidos en `supabase/seed.sql`:
+   ```bash
+   supabase db reset
+   ```
 
 ## Notas
 
-- La función `vault._crypto_aead_det_noncegen()` se incluye como implementación mínima basada en `gen_random_bytes`.
-  Si tu plataforma ya provee la extensión oficial (`supabase_vault`), elimina o ajusta esa definición.
+- Para añadir nuevas tablas o modificar las existentes, crea un archivo adicional en `supabase/migrations/`
+  siguiendo el formato `<timestamp>_<descripcion>.sql` y ejecuta `supabase db push` para aplicarlo.
+- La función `vault._crypto_aead_det_noncegen()` se incluye como implementación mínima basada en
+  `gen_random_bytes`. Si tu plataforma ya provee la extensión oficial (`supabase_vault`), elimina o ajusta esa definición.
 - Ajusta los índices y restricciones según evolucione el dominio del negocio.
-- Para añadir nuevas tablas o modificar las existentes, crea archivos adicionales dentro de `sql/schema/<esquema>/`
-  y agrégalos al `sql/create_database.sql` siguiendo el orden deseado.
